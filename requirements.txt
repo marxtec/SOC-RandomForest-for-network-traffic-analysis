@@ -1,0 +1,8 @@
+streamlit
+streamlit-autorefresh
+pandas
+plotly
+seaborn
+matplotlib
+scikit-learn
+joblib
