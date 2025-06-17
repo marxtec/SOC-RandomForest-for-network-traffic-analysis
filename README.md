@@ -21,10 +21,6 @@ ProyectoPACD/
 ├── requirements.txt # Dependencias del entorno
 └── README.md
 
-yaml
-Copiar
-Editar
-
 ---
 
 ## 🚀 ¿Cómo ejecutar el proyecto?
