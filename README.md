@@ -1,4 +1,4 @@
-# 🧠 Proyecto PACD: Simulación y Clasificación de Tráfico de Red
+# 🧠 Proyecto Programación avanzada para la ciencia de datos: Simulación y Clasificación de Tráfico de Red
 
 Este proyecto implementa una simulación de tráfico de red en tiempo real, clasifica paquetes como **benignos** o **maliciosos (DDoS)** utilizando un modelo de machine learning, y presenta los resultados en un dashboard interactivo tipo **SOC (Security Operations Center)**.
 
