@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # Cargar el modelo entrenado
-modelo = joblib.load(r"C:\Users\danie\ProyectoPACD\models\modelo_clasificador_trafico_red.pkl")
+modelo = joblib.load("models/modelo_clasificador_trafico_red.pkl")
 
 # Definir el orden exacto de las variables que el modelo espera
 columnas_modelo = [
