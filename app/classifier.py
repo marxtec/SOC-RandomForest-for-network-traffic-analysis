@@ -1,9 +1,12 @@
 import joblib
 import numpy as np
 import pandas as pd
+import os
 
-# Cargar el modelo entrenado
-modelo = joblib.load("models/modelo_clasificador_trafico_red.pkl")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Ruta absoluta al modelo
+ruta_modelo = os.path.join(BASE_DIR, "models", "modelo_clasificador_trafico_red.pkl")
 
 # Definir el orden exacto de las variables que el modelo espera
 columnas_modelo = [
