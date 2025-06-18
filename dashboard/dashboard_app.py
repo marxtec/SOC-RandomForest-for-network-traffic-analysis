@@ -13,8 +13,9 @@ st.set_page_config(page_title="SOC Dashboard", layout="wide")
 # Refrescar cada 5 segundos automáticamente
 st_autorefresh(interval=5000, key="auto-refresh")
 
-# 📍 Ruta del archivo de logs
-log_path = os.path.join("logs", "traffic_log.csv")
+# Obtener ruta absoluta desde donde está este archivo
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+log_path = os.path.join(BASE_DIR, "logs", "traffic_log.csv")
 
 # Título
 st.title("🧠 Network Threat Intelligence Dashboard")
