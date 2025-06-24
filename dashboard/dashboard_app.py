@@ -21,6 +21,12 @@ st.markdown("""
         background-color: #0E1117;
     }
     /* Estilo para las tarjetas (contenedores) */
+    .st-emotion-cache-1r6slb0 { /* Clase común para contenedores en Streamlit > 1.30 */
+        background-color: #161A25;
+        border: 1px solid #2A3146;
+        border-radius: 10px;
+        padding: 25px !important; /* Usar !important si es necesario para anular estilos */
+    }
     [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
         background-color: #161A25;
         border: 1px solid #2A3146;
@@ -50,9 +56,6 @@ st.markdown("""
     /* Estilo para la barra lateral */
     [data-testid="stSidebar"] {
         background-color: #161A25;
-    }
-    .st-emotion-cache-16txtl3 {
-        font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -86,10 +89,9 @@ def generate_dummy_data(num_records=500):
 # --- 3. CARGA DE DATOS ---
 @st.cache_data(ttl=60)
 def load_data():
-    log_path = "traffic_log.csv" # Simplificado para el ejemplo
+    log_path = "traffic_log.csv"
     if os.path.exists(log_path):
         df = pd.read_csv(log_path)
-        # Asegúrate de que tu CSV tenga las columnas necesarias
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         return df
     else:
@@ -100,16 +102,19 @@ df = load_data()
 
 # --- 4. BARRA LATERAL (SIDEBAR) ---
 with st.sidebar:
-    st.image("https://i.imgur.com/g0y4RzA.png", width=70) # Un logo genérico
+    # st.image("https://i.imgur.com/g0y4RzA.png", width=70) # Un logo genérico
     st.title("SOC AS-A-SERVICE")
     st.markdown("---")
     
     # Menú de navegación (funcionalidad de ejemplo)
-    st.page_link("app.py", label="Dashboard", icon="📊")
-    st.page_link("app.py", label="Alerts", icon="❗")
-    st.page_link("app.py", label="Service Requests", icon="✔️")
-    st.page_link("app.py", label="My Assets", icon="⚙️")
-    st.page_link("app.py", label="Reports", icon="📄")
+    # Se han comentado las siguientes líneas para evitar el error.
+    # Si en el futuro creas una app multi-página, puedes descomentarlas
+    # y apuntar a los archivos correctos dentro de una carpeta "pages".
+    st.subheader("Dashboard")
+    st.write("Alerts")
+    st.write("Service Requests")
+    st.write("My Assets")
+    st.write("Reports")
     
     st.markdown("---")
     date_filter = st.selectbox(
@@ -121,17 +126,15 @@ with st.sidebar:
     st.info(f"Creado por Dani | Proyecto PACD\n\nHora: {datetime.now().strftime('%H:%M:%S')}")
 
 
-# --- 5. CUERPO PRINCIPAL DEL DASHBOARD ---
+# --- 5. CUERPO PRINCIPAL DEL DASHBOARD (EL RESTO DEL CÓDIGO PERMANECE IGUAL) ---
 
-# Título principal
 st.header("SOC Monitoring Summary")
 st.markdown("Análisis de eventos de seguridad y estado operativo de la red.")
 
-# --- MÉTRICAS PRINCIPALES (KPIs) ---
 total_events = len(df)
 high_critical_alerts = len(df[df['severity'].isin(['High', 'Critical'])])
 escalated_alerts = len(df[df['status'] == 'Escalated'])
-monitored_devices = 5 # Valor de ejemplo como en la imagen
+monitored_devices = 5
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -143,162 +146,101 @@ with col3:
 with col4:
     st.metric(label="🚨 Escalated Alerts", value=escalated_alerts)
 
-st.markdown("<br>", unsafe_allow_html=True) # Espacio
+st.markdown("<br>", unsafe_allow_html=True)
 
-# --- FILA DE GRÁFICOS DE DONA Y BARRAS ---
 col5, col6, col7 = st.columns(3)
 
-# GRÁFICO 1: Alertas por Severidad
 with col5:
     with st.container(border=True):
         st.subheader("Alerts by Severity")
         severity_counts = df['severity'].value_counts()
-        fig = go.Figure(data=[go.Pie(
-            labels=severity_counts.index,
-            values=severity_counts.values,
-            hole=.7,
-            marker_colors=['#F9C80E', '#F86624', '#EA3546', '#662E9B'] # Amarillo, Naranja, Rojo, Morado
-        )])
-        fig.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5),
-            height=300, margin=dict(t=30, b=80)
-        )
+        fig = go.Figure(data=[go.Pie(labels=severity_counts.index, values=severity_counts.values, hole=.7, marker_colors=['#F9C80E', '#F86624', '#EA3546', '#662E9B'])])
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5), height=300, margin=dict(t=30, b=80))
         fig.add_annotation(text=f"{high_critical_alerts}", x=0.5, y=0.5, font_size=30, showarrow=False)
         fig.add_annotation(text="Alerts", x=0.5, y=0.38, font_size=14, showarrow=False, opacity=0.7)
         st.plotly_chart(fig, use_container_width=True)
 
-# GRÁFICO 2: Alertas por Estado
 with col6:
     with st.container(border=True):
         st.subheader("Alerts by Status")
         status_counts = df['status'].value_counts()
-        fig = go.Figure(data=[go.Pie(
-            labels=status_counts.index,
-            values=status_counts.values,
-            hole=.7,
-            marker_colors=['#43BCCD', '#F8961E', '#90BE6D', '#F94144'] # Azul, Naranja, Verde, Rojo
-        )])
-        fig.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5),
-            height=300, margin=dict(t=30, b=80)
-        )
+        fig = go.Figure(data=[go.Pie(labels=status_counts.index, values=status_counts.values, hole=.7, marker_colors=['#43BCCD', '#F8961E', '#90BE6D', '#F94144'])])
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5), height=300, margin=dict(t=30, b=80))
         fig.add_annotation(text=f"{total_events}", x=0.5, y=0.5, font_size=30, showarrow=False)
         fig.add_annotation(text="Total", x=0.5, y=0.38, font_size=14, showarrow=False, opacity=0.7)
         st.plotly_chart(fig, use_container_width=True)
 
-# GRÁFICO 3: Alertas por Categoría
 with col7:
     with st.container(border=True):
         st.subheader("Open Alerts by Category")
         category_counts = df['category'].value_counts()
-        fig = px.bar(category_counts, y=category_counts.index, x=category_counts.values, orientation='h',
-                     labels={'y': 'Category', 'x': 'Count'}, color=category_counts.index)
-        fig.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            showlegend=False, height=300, margin=dict(t=30, b=0), yaxis={'categoryorder':'total ascending'}
-        )
+        fig = px.bar(category_counts, y=category_counts.index, x=category_counts.values, orientation='h', labels={'y': 'Category', 'x': 'Count'}, color=category_counts.index)
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', showlegend=False, height=300, margin=dict(t=30, b=0), yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- FILA DE GRÁFICOS DE LÍNEAS ---
 col8, col9 = st.columns(2)
 
-# GRÁFICO 4: Tendencia de Detección de Amenazas
 with col8:
     with st.container(border=True):
         st.subheader("Threat Detection Trend")
         df_time = df.set_index('timestamp').resample('H').size().reset_index(name='count')
         fig = px.line(df_time, x='timestamp', y='count', title=None)
         fig.update_traces(line_color='#00BFA5', fill='tozeroy', fillcolor='rgba(0,191,165,0.1)')
-        fig.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            height=300, margin=dict(t=30, b=0), xaxis_title=None, yaxis_title="Events per Hour"
-        )
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(t=30, b=0), xaxis_title=None, yaxis_title="Events per Hour")
         st.plotly_chart(fig, use_container_width=True)
 
-# GRÁFICO 5: Desglose de Severidad en el Tiempo
 with col9:
     with st.container(border=True):
         st.subheader("Severity Breakdown Over Time")
         df_sev_time = df.set_index('timestamp').groupby('severity').resample('H').size().reset_index(name='count')
-        fig = px.area(df_sev_time, x='timestamp', y='count', color='severity', title=None,
-                      color_discrete_map={'Critical': '#EA3546', 'High': '#F86624', 'Medium': '#F9C80E', 'Low': '#43BCCD'})
-        fig.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            height=300, margin=dict(t=30, b=0), xaxis_title=None, yaxis_title="Event Count"
-        )
+        fig = px.area(df_sev_time, x='timestamp', y='count', color='severity', title=None, color_discrete_map={'Critical': '#EA3546', 'High': '#F86624', 'Medium': '#F9C80E', 'Low': '#43BCCD'})
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(t=30, b=0), xaxis_title=None, yaxis_title="Event Count")
         st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- FILA DE GRÁFICOS DE BARRAS DE IPs ---
 col10, col11 = st.columns(2)
 
-# GRÁFICO 6: Top 10 IP Origen
 with col10:
      with st.container(border=True):
         st.subheader("Top 10 Source IPs")
         top_src_ips = df['source_ip'].value_counts().nlargest(10)
         fig = px.bar(top_src_ips, x=top_src_ips.values, y=top_src_ips.index, orientation='h', color=top_src_ips.values, color_continuous_scale='Reds')
-        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                          height=300, margin=dict(t=30), xaxis_title="Count", yaxis_title="Source IP", yaxis={'categoryorder':'total ascending'})
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(t=30), xaxis_title="Count", yaxis_title="Source IP", yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig, use_container_width=True)
 
-# GRÁFICO 7: Top 10 IP Destino
 with col11:
      with st.container(border=True):
         st.subheader("Top 10 Destination IPs")
         top_dest_ips = df['destination_ip'].value_counts().nlargest(10)
         fig = px.bar(top_dest_ips, x=top_dest_ips.values, y=top_dest_ips.index, orientation='h', color=top_dest_ips.values, color_continuous_scale='Blues')
-        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                          height=300, margin=dict(t=30), xaxis_title="Count", yaxis_title="Destination IP", yaxis={'categoryorder':'total ascending'})
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(t=30), xaxis_title="Count", yaxis_title="Destination IP", yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-
-# --- TABLA DE EVENTOS ---
-# GRÁFICO 8 (la tabla cuenta como una visualización principal)
 with st.container(border=True):
     st.subheader(f"List of Open Alerts ({total_events})")
-    st.dataframe(df, use_container_width=True, height=400)
-
-# Aquí ya tenemos 8 visualizaciones/componentes principales de datos.
-# Para llegar a 10+, podemos añadir un mapa y otra tabla de resumen.
+    st.dataframe(df.head(100), use_container_width=True, height=400) # Mostramos solo los primeros 100 por rendimiento
 
 st.markdown("<br>", unsafe_allow_html=True)
 col12, col13 = st.columns([0.6, 0.4])
 
-# GRÁFICO 9: Mapa de Origen de Amenazas (simulado)
 with col12:
     with st.container(border=True):
         st.subheader("Threat Origin Map (Simulated)")
-        # Simular coordenadas para el mapa
         df['lat'] = np.random.uniform(20, 50, len(df))
         df['lon'] = np.random.uniform(-120, -70, len(df))
         df_high_sev = df[df['severity'].isin(['High', 'Critical'])]
         
-        fig = px.scatter_geo(df_high_sev, lat='lat', lon='lon', color='severity',
-                             hover_name='source_ip', size_max=15,
-                             projection="natural earth",
-                             color_discrete_map={'Critical': '#EA3546', 'High': '#F86624'})
-        fig.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            geo=dict(bgcolor='rgba(0,0,0,0)', lakecolor='rgba(0,0,0,0)', landcolor='#2A3146', subunitcolor='#444'),
-            height=400, margin=dict(t=30, b=0, l=0, r=0)
-        )
+        fig = px.scatter_geo(df_high_sev, lat='lat', lon='lon', color='severity', hover_name='source_ip', size_max=15, projection="natural earth", color_discrete_map={'Critical': '#EA3546', 'High': '#F86624'})
+        fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', geo=dict(bgcolor='rgba(0,0,0,0)', lakecolor='rgba(0,0,0,0)', landcolor='#2A3146', subunitcolor='#444'), height=400, margin=dict(t=30, b=0, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True)
 
-# GRÁFICO 10: Resumen por Nombre de Evento
 with col13:
     with st.container(border=True):
         st.subheader("Event Name Summary")
-        event_summary = df.groupby('event_name').agg(
-            Count=('event_id', 'count'),
-            Critical=('severity', lambda x: (x == 'Critical').sum()),
-            High=('severity', lambda x: (x == 'High').sum())
-        ).sort_values('Count', ascending=False)
+        event_summary = df.groupby('event_name').agg(Count=('event_id', 'count'), Critical=('severity', lambda x: (x == 'Critical').sum()), High=('severity', lambda x: (x == 'High').sum())).sort_values('Count', ascending=False)
         st.dataframe(event_summary, use_container_width=True, height=350)
