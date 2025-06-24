@@ -2,112 +2,196 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-import plotly.graph_objects as go
-import seaborn as sns
-import matplotlib.pyplot as plt
-from streamlit_autorefresh import st_autorefresh
+import plotly.express as px
+import plotly.graph_objects as go # Usaremos esto para gráficos más personalizados
 
-# Configuración inicial
-st.set_page_config(page_title="SOC Dashboard", layout="wide", page_icon="🛡️")
+# --- 1. CONFIGURACIÓN INICIAL Y ESTILO (LA CLAVE DEL LOOK & FEEL) ---
 
-# Refrescar cada 5 segundos automáticamente
-st_autorefresh(interval=5000, key="auto-refresh")
+# Configuración de la página: layout ancho y título.
+st.set_page_config(page_title="SOC Dashboard", layout="wide", initial_sidebar_state="expanded")
 
-# Obtener ruta absoluta desde donde está este archivo
+# CSS personalizado para replicar el look del SOC.
+# Lo inyectamos con st.markdown. Este es el "secreto" para el diseño.
+st.markdown("""
+<style>
+    /* Cambia el color de fondo principal */
+    .main {
+        background-color: #0E1117;
+    }
+    /* Estilo para las "tarjetas" o contenedores */
+    .st-emotion-cache-1r6slb0, .st-emotion-cache-1aehpvj {
+        background-color: #161A25; /* Color de fondo de la tarjeta */
+        border: 1px solid #2A3146; /* Borde sutil */
+        border-radius: 10px; /* Bordes redondeados */
+        padding: 20px;
+    }
+    /* Estilo para las métricas de Streamlit */
+    .st-emotion-cache-1tpl0xr p {
+        font-size: 1rem; /* Tamaño de la etiqueta de la métrica */
+    }
+    .st-emotion-cache-1tpl0xr div[data-testid="stMetricValue"] {
+        font-size: 2.5rem; /* Tamaño del valor de la métrica */
+        color: #FFFFFF; /* Color blanco para el valor */
+    }
+    /* Ocultar la decoración de los gráficos de Plotly */
+    .stPlotlyChart {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    /* Títulos de las secciones */
+    h2 {
+        color: #FFFFFF;
+        border-bottom: 2px solid #2A3146;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# --- 2. BARRA LATERAL (SIDEBAR) PARA NAVEGACIÓN Y CONTROLES ---
+
+with st.sidebar:
+    st.title("🛡️ SOC Dashboard")
+    st.caption("Creado por Dani | Proyecto PACD")
+    
+    # Podrías agregar filtros aquí, como un selector de fecha
+    # date_filter = st.date_input("Seleccionar rango de fechas")
+    
+    st.markdown("---")
+    st.markdown(f"🕒 **Hora actual:** {datetime.now().strftime('%H:%M:%S')}")
+    # El autorefresh es útil para producción
+    # from streamlit_autorefresh import st_autorefresh
+    # st_autorefresh(interval=15000, key="auto-refresh")
+
+
+# --- 3. CARGA DE DATOS (SIN CAMBIOS, TU FUNCIÓN ES CORRECTA) ---
+
+# Obtener ruta absoluta
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 log_path = os.path.join(BASE_DIR, "logs", "traffic_log.csv")
 
-# Título
-st.title("🧠 **SOC Dashboard - Threat Intelligence**")
-st.caption("Dashboard de Operaciones de Seguridad - Proyecto PACD")
-st.markdown(f"🕒 **Hora actual:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`")
-st.divider()
-
-# Cargar logs
 def cargar_logs():
     if os.path.exists(log_path):
         df = pd.read_csv(log_path)
         df["timestamp"] = pd.to_datetime(df["timestamp"])
-
-        # Normalizar valores
         df["resultado"] = df["resultado"].str.strip().str.capitalize()
         df["tipo_simulado"] = df["tipo_simulado"].str.strip().str.capitalize()
         return df
     else:
-        return pd.DataFrame(columns=["timestamp", "tipo_simulado", "resultado", "probabilidad"])
+        # Creamos un DataFrame de ejemplo si no hay datos
+        return pd.DataFrame({
+            "timestamp": [], "tipo_simulado": [], "resultado": [], "probabilidad": []
+        })
 
-# Cargar datos
 df = cargar_logs()
 
-# Si los datos están disponibles
-if not df.empty:
-    # Métricas Generales
-    total = len(df)
-    benignos = len(df[df["resultado"] == "Benigno"])
-    ataques = len(df[df["resultado"] == "Ddos"])
-    ultima = df.iloc[-1]["resultado"]
+# --- 4. CUERPO PRINCIPAL DEL DASHBOARD ---
 
-    # 1. **Panel de Métricas Principales**
-    st.subheader("📊 **Métricas del Sistema**")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("📦 Total de eventos procesados", total)
-    col2.metric("🛡️ Eventos Benignos", benignos)
-    col3.metric("☠️ Ataques DDoS", ataques)
-    col4.metric("🧪 Última Clasificación", ultima)
+st.header("SOC Monitoring Summary")
+st.markdown("Resumen general de la actividad de red en tiempo real.")
 
-    # 2. **Gráfico de Evolución Temporal**
-    df["minuto"] = df["timestamp"].dt.strftime('%H:%M')
-    por_tiempo = df.groupby(["minuto", "resultado"]).size().reset_index(name="cuenta")
-    fig_line = go.Figure()
-    for label in por_tiempo['resultado'].unique():
-        fig_line.add_trace(go.Scatter(x=por_tiempo[por_tiempo['resultado'] == label]['minuto'],
-                                     y=por_tiempo[por_tiempo['resultado'] == label]['cuenta'],
-                                     mode='lines', name=label))
-    fig_line.update_layout(title="📈 **Evolución Temporal del Tráfico**", xaxis_title="Hora", yaxis_title="Número de Eventos")
-    st.plotly_chart(fig_line, use_container_width=True)
-
-    # 3. **Gráfico de Distribución de Tráfico**
-    fig_pie = go.Figure(data=[go.Pie(labels=df["resultado"].unique(), values=df["resultado"].value_counts(), hole=0.3)])
-    fig_pie.update_layout(title="🌀 **Distribución Actual de Tráfico**")
-    st.plotly_chart(fig_pie, use_container_width=True)
-
-    st.divider()
-
-    # 4. **Matriz de Confusión**
-    st.subheader("🔬 **Matriz de Confusión**")
-    conf_matrix = pd.crosstab(df["tipo_simulado"], df["resultado"])
-    fig, ax = plt.subplots(figsize=(10, 8))
-    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", ax=ax)
-    ax.set_title('🧪 **Matriz de Confusión**')
-    st.pyplot(fig)
-
-    st.divider()
-
-    # 5. **Gráfico de Probabilidad (Confianza del modelo)**
-    st.subheader("📡 **Confianza del Clasificador por Tiempo**")
-    fig_prob = px.scatter(df, x="timestamp", y="probabilidad", color="resultado", title="🔍 **Confianza del Modelo (Probabilidad)**")
-    st.plotly_chart(fig_prob, use_container_width=True)
-
-    st.divider()
-
-    # 6. **Análisis de Falsos Positivos y Negativos**
-    fp = len(df[(df["tipo_simulado"] == "Benigno") & (df["resultado"] == "Ddos")])
-    fn = len(df[(df["tipo_simulado"] == "Malicioso") & (df["resultado"] == "Benigno")])
-    total_benignos = len(df[df["tipo_simulado"] == "Benigno"])
-    total_maliciosos = len(df[df["tipo_simulado"] == "Malicioso"])
-    fpr = (fp / total_benignos) * 100 if total_benignos else 0
-    fnr = (fn / total_maliciosos) * 100 if total_maliciosos else 0
-
-    st.subheader("🚨 **Métricas de Error**")
-    col5, col6 = st.columns(2)
-    col5.metric("❗ **Falsos Positivos**", f"{fpr:.2f}%")
-    col6.metric("❗ **Falsos Negativos**", f"{fnr:.2f}%")
-
-    st.divider()
-
-    # 7. **Últimos Eventos Clasificados**
-    st.subheader("📋 **Últimos Paquetes Clasificados**")
-    st.dataframe(df.sort_values(by="timestamp", ascending=False).head(20), use_container_width=True)
-
+if df.empty:
+    st.warning("⚠️ Aún no hay tráfico clasificado. Corre el simulador para comenzar.")
 else:
-    st.warning("⚠️ **Aún no hay tráfico clasificado. Corre el simulador para comenzar.**")
+    # --- MÉTRICAS PRINCIPALES (KPIs) ---
+    total_procesados = len(df)
+    benignos = len(df[df["resultado"] == "Benigno"])
+    ataques_ddos = len(df[df["resultado"] == "Ddos"])
+    # Asumimos que tienes 'Malicioso' y 'Benigno' como tipos simulados
+    tipos_reales = df["tipo_simulado"].unique()
+    total_reales_benignos = len(df[df["tipo_simulado"] == "Benigno"])
+    total_reales_maliciosos = len(df[(df["tipo_simulado"] == "Malicioso") | (df["tipo_simulado"] == "Ddos")])
+    
+    # Usamos columnas para organizar las métricas como en el ejemplo
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("📦 Total de Eventos", total_procesados)
+    with col2:
+        st.metric("🛡️ Tráfico Benigno", benignos)
+    with col3:
+        st.metric("☠️ Alertas de Ataque", ataques_ddos)
+    with col4:
+        accuracy = (df["tipo_simulado"] == df["resultado"]).mean()
+        st.metric("🎯 Precisión del Modelo", f"{accuracy:.2%}")
+
+    st.markdown("<br>", unsafe_allow_html=True) # Espacio vertical
+
+    # --- VISUALIZACIONES EN TARJETAS ---
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        with st.container(border=True):
+            st.subheader("Alertas por Tipo")
+            # Gráfico de dona (pie con un agujero)
+            fig_pie = px.pie(df, names="resultado", hole=0.6,
+                             title="Distribución de Tráfico Clasificado",
+                             color_discrete_map={"Benigno": "#2ECC71", "Ddos": "#E74C3C"})
+            fig_pie.update_layout(
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                legend_title_text=''
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+    with col_b:
+        with st.container(border=True):
+            st.subheader("Tendencia de Detección")
+            df["minuto"] = df["timestamp"].dt.floor('T') # Agrupar por minuto
+            detecciones_por_minuto = df.groupby(['minuto', 'resultado']).size().reset_index(name='cuenta')
+            fig_line = px.line(detecciones_por_minuto, x='minuto', y='cuenta', color='resultado',
+                               title="Evolución de Detecciones por Minuto",
+                               color_discrete_map={"Benigno": "#2ECC71", "Ddos": "#E74C3C"})
+            fig_line.update_layout(
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis_title="Tiempo",
+                yaxis_title="Número de Eventos"
+            )
+            st.plotly_chart(fig_line, use_container_width=True)
+            
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # --- MATRIZ DE CONFUSIÓN Y ERRORES ---
+    col_c, col_d = st.columns([0.4, 0.6]) # Damos más espacio a la tabla
+
+    with col_c:
+        with st.container(border=True):
+            st.subheader("Análisis de Precisión")
+            conf_matrix = pd.crosstab(df["tipo_simulado"], df["resultado"])
+            
+            # Usar Plotly para la matriz de confusión para mantener el estilo
+            fig_heatmap = go.Figure(data=go.Heatmap(
+                z=conf_matrix.values,
+                x=conf_matrix.columns,
+                y=conf_matrix.index,
+                colorscale="Blues",
+                text=conf_matrix.values,
+                texttemplate="%{text}"
+            ))
+            fig_heatmap.update_layout(
+                title="Matriz de Confusión",
+                xaxis_title="Predicción del Modelo",
+                yaxis_title="Tipo Real",
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_heatmap, use_container_width=True)
+
+            # Métricas de error
+            fp = conf_matrix.loc['Benigno', 'Ddos'] if 'Benigno' in conf_matrix.index and 'Ddos' in conf_matrix.columns else 0
+            fn = conf_matrix.loc['Ddos', 'Benigno'] if 'Ddos' in conf_matrix.index and 'Benigno' in conf_matrix.columns else 0
+            
+            st.metric("❗ Falsos Positivos (FP)", fp)
+            st.metric("❗ Falsos Negativos (FN)", fn)
+
+    # --- TABLA DE EVENTOS RECIENTES ---
+    with col_d:
+        with st.container(border=True):
+            st.subheader("📋 Últimos Eventos Registrados")
+            st.dataframe(df.sort_values(by="timestamp", ascending=False).head(20),
+                         use_container_width=True,
+                         height=550) # Ajustar altura para que quepa bien
